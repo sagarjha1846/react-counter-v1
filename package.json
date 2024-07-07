@@ -10,6 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@rollup/pluginutils": "^5.1.0",
+    "@vitejs/plugin-react": "^4.3.1",
     "axios": "^1.7.2",
     "firebase": "^10.12.3",
     "react": "^18.3.1",
