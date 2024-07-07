@@ -1,83 +1,78 @@
-import { collection, getDoc, getDocs } from 'firebase/firestore';
+import { collection, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { useEffect, useState } from "react";
 import { database } from './config/firebase';
+import axios from 'axios';
 
 export default function App() {
-  const [counter, setCounter] = useState(0);
-  const [darkMode, setDarkMode] = useState(false);
-   const collectionRef = collection(database, "counter");
-  const [statistics, setStatistics] = useState({
-    totalBtnClicks: 0,
-    incrementCount: 0,
-    decrementCount: 0,
-    zeroReached: 0,
-    resetBtnClicks: 0,
-    lowCounter: 0,
-    highCounter: 0
-  });
+  const collectionRef = collection(database, "statistics");
+  const id = import.meta.env.VITE_DOC_ID
+  const IP_ACCESS = import.meta.env.VITE_IP_ACCESS_KEY
+  const [statistics, setStatistics] = useState(null);
 
   useEffect(() => {
-    (async() => {
-     const querySnapshot = await getDocs(collectionRef);
-      querySnapshot.forEach((doc) => {
-        // setImages((prev) => [...prev, { ...doc.data(), id: doc.id }]);
-        console.log('====================================');
-        console.log(doc);
-        console.log('====================================');
-      });
-   })()
+    (async () => {
+      const docRef = doc(collectionRef, id);
+      const docSnapshot = await getDoc(docRef);
+      if (docSnapshot.exists()) {
+            const data = docSnapshot.data();
+            setStatistics(data);
+          } 
+    })()
+    
+    const fetchGeoData = async () => {
+      try {
+        const response = await axios.get(`https://ipinfo.io?token=${IP_ACCESS}`);
+        setStatistics(prev => ({ ...prev, lastUsedLocation: `${response.data.city} ${response.data.region} ${response.data.country}` }));
+      } catch (error) {
+        console.error('Error fetching geo data:', error);
+      }
+    };
+
+    fetchGeoData();
   }, []);
 
   useEffect(() => {
+    
     if (statistics) {
-      updateStatisticsFile();
+      updateStatisticsFile({id});
     }
 
     return () => {
       if (statistics) {
-        updateStatisticsFile();
+        updateStatisticsFile({id});
       }
     };
   }, [JSON.stringify(statistics)]);
 
-  const updateStatisticsFile = () => {
-    fetch("/statistics.json", {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(statistics)
-    })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error("Failed to update statistics file");
-        }
-      })
-      .catch((error) =>
-        console.error("Error updating statistics file:", error)
-      );
+  const updateStatisticsFile = ({id}) => {
+    (async () => {
+      if (id) {
+        const docRef = doc(database, "statistics", id);
+        await updateDoc(docRef, statistics)
+      }
+   })()
   };
 
   useEffect(() => {
-    if (counter === 0) {
+    if (statistics?.counter === 0) {
       setStatistics((prev) => ({
         ...prev,
         zeroReached: prev?.zeroReached + 1
       }));
     }
-    if (counter < statistics?.lowCounter) {
+    if (statistics?.counter < statistics?.lowCounter) {
       setStatistics((prev) => ({
         ...prev,
-        lowCounter: counter
+        lowCounter: statistics?.counter
       }));
     }
-    if (counter > statistics?.highCounter) {
+    if (statistics?.counter > statistics?.highCounter) {
       setStatistics((prev) => ({
         ...prev,
-        highCounter: counter
+        highCounter: statistics?.counter
       }));
     }
-  }, [counter]);
+  }, [statistics?.counter]);
 
   const handleStats = (type) => {
     const interactions = {
@@ -115,31 +110,32 @@ export default function App() {
   };
 
   const handleIncrement = () => {
-    setCounter((prev) => prev + 1);
+    setStatistics((prev) => ({...prev,counter:prev.counter + 1}));
     handleStats("total");
     handleStats("increment");
   };
 
   const handleDecrement = () => {
-    setCounter((prev) => prev - 1);
+    setStatistics((prev) => ({...prev,counter:prev.counter - 1}));
     handleStats("total");
     handleStats("decrement");
   };
 
   const handleReset = () => {
-    setCounter(0);
+    setStatistics(0);
     handleStats("total");
     handleStats("reset");
   };
 
   const handleDarkMode = () => {
-    setDarkMode(!darkMode);
+    setStatistics((prev) => ({...prev,darkMode:!prev.darkMode}));
   };
 
   if (!statistics) {
     return <div>Loading...</div>;
   }
 
+  const {darkMode}=statistics
   return (
     <div
       className={`font-bold h-[100vh] w-[100vw] ${
@@ -158,7 +154,8 @@ export default function App() {
         <div>Reached zero: <span className=' text-blue-400 font-bold'>{statistics?.zeroReached} times </span></div>
         <div>Lowest value: <span className=' text-blue-400 font-bold'>{statistics?.lowCounter} </span></div>
         <div>Highest value: <span className=' text-blue-400 font-bold'>{statistics?.highCounter} </span></div>
-        <div>Thanks for using the counter app 😊!</div>
+        <div>Current Location: <span className=' text-blue-400 font-bold'>{statistics?.lastUsedLocation} </span></div>
+        <div>Thanks for using the statistics?.counter app 😊!</div>
       </div>
       <button onClick={handleDarkMode} className=" absolute right-10 top-10">
         {!darkMode ? (
@@ -193,7 +190,7 @@ export default function App() {
               The Count is{" "}
             </div>
 
-            {counter}
+            {statistics?.counter}
 
             <div
               className={`w-full text-center ${
@@ -230,7 +227,7 @@ export default function App() {
           className="  w-full flex justify-center align-middle content-center self-center"
         >
           <button
-            disabled={counter === 0}
+            disabled={statistics?.counter === 0}
             className={`disabled:bg-gray-500 disabled:cursor-not-allowed px-20 py-4 text-2xl ${
               darkMode ? "bg-[#00253e] text-gray-300" : "bg-blue-400"
             } rounded-md text-white shadow-2xl`}
