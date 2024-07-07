@@ -122,7 +122,7 @@ export default function App() {
   };
 
   const handleReset = () => {
-    setStatistics(0);
+    setStatistics((prev) => ({...prev,counter:0}));
     handleStats("total");
     handleStats("reset");
   };
