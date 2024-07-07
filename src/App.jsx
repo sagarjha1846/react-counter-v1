@@ -155,7 +155,7 @@ export default function App() {
         <div>Lowest value: <span className=' text-blue-400 font-bold'>{statistics?.lowCounter} </span></div>
         <div>Highest value: <span className=' text-blue-400 font-bold'>{statistics?.highCounter} </span></div>
         <div>Current Location: <span className=' text-blue-400 font-bold'>{statistics?.lastUsedLocation} </span></div>
-        <div>Thanks for using the statistics?.counter app 😊!</div>
+        <div>Thanks for using the counter app 😊!</div>
       </div>
       <button onClick={handleDarkMode} className=" absolute right-10 top-10">
         {!darkMode ? (
